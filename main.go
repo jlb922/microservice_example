@@ -6,6 +6,7 @@ import (
 	"io/ioutil"
 	"log"
 	"net/http"
+	"os"
 	"time"
 
 	"gopkg.in/mgo.v2"
@@ -14,7 +15,6 @@ import (
 
 // Mongo configuration
 const (
-	hosts      = "localhost:27017"
 	database   = "db"
 	username   = ""
 	password   = ""
@@ -34,9 +34,13 @@ type MongoStore struct {
 }
 
 var mongoStore = MongoStore{}
+var hosts string
 
 func main() {
-
+	hosts = os.Getenv("MGOHOSTNAME") + ":27017"
+	//	hosts = "localhost:27017"
+	//	hosts = "mongodb:27017"
+	fmt.Println("Connection string: ", hosts)
 	//Create MongoDB session
 	session := initialiseMongo()
 	mongoStore.session = session

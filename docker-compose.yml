@@ -1,5 +1,6 @@
 version: '3'
 services:
+ 
   mongodb:
     image: mongo
     ports:
@@ -7,10 +8,26 @@ services:
     volumes:
       - "mongodata:/data/db"
     networks:
-      - network1
-
+      - backend
+ 
+  microservice:
+    depends_on:
+      - mongodb
+    image: go-docker-optimized:latest
+    environment:
+      - PORT=9090
+    environment:
+      - MGOHOSTNAME=mongodb
+    ports: 
+      - "9090:9090"
+    links: 
+      - mongodb
+    networks:
+      - backend
+  
 volumes:
    mongodata:
-
+    
 networks:
-   network1:
+  backend:
+    driver: "bridge"

@@ -1,53 +1,44 @@
-#FROM golang:1.9.2 as builder
-#ARG SOURCE_LOCATION=/
-#WORKDIR ${SOURCE_LOCATION}
+# Dockerfile References: https://docs.docker.com/engine/reference/builder/
+
+# Start from the latest golang base image
+FROM golang:latest as builder
+
+# Add Maintainer Info
+LABEL maintainer="Jeff Bradbury <jlb922@gmail.com>"
+
+# Set the Current Working Directory inside the container
+WORKDIR /app
+
 #RUN go get -d -v gopkg.in/mgo.v2/bson \
 #    && go get -d -v gopkg.in/mgo.v2
-#COPY main.go .
-#RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o app .
-#
-#FROM alpine:latest  
-#ARG SOURCE_LOCATION=/
-#RUN apk --no-cache add curl
-#EXPOSE 9090
-#WORKDIR /root/
-#COPY --from=builder ${SOURCE_LOCATION} .
-#CMD ["./app"]  
 
-FROM golang:alpine as builder
+# Copy go mod and sum files
+COPY go.mod go.sum ./
 
-# Set necessary environmet variables needed for our image
-ENV GO111MODULE=on \
-    CGO_ENABLED=0 \
-    GOOS=linux \
-    GOARCH=amd64
-
-# Move to working directory /build
-WORKDIR /build
-
-# Copy and download dependency using go mod
-COPY go.mod .
-COPY go.sum .
+# Download all dependencies. Dependencies will be cached if the go.mod and go.sum files are not changed
 RUN go mod download
 
-# Copy the code into the container
+# Copy the source from the current directory to the Working Directory inside the container
 COPY . .
 
-# Build the application
-#RUN go build -o main .
+# Build the Go app
 RUN CGO_ENABLED=0 GOOS=linux go build -a -installsuffix cgo -o main .
 
+
+######## Start a new stage from scratch #######
 FROM alpine:latest  
+
+#RUN apk --no-cache add ca-certificates
+
 RUN apk --no-cache add curl
 
-# Move to /dist directory as the place for resulting binary folder
-WORKDIR /dist
+WORKDIR /root/
 
-# Copy binary from build to main folder
-RUN cp /build/main .
+# Copy the Pre-built binary file from the previous stage
+COPY --from=builder /app/main .
 
-# Export necessary port
+# Expose port 9090 to the outside world
 EXPOSE 9090
 
-# Command to run when starting the container
-CMD ["/dist/main"]
+# Command to run the executable
+CMD ["./main"] 
